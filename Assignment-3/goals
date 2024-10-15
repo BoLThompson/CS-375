@@ -1,0 +1,14 @@
+implement three js classes
+	each renders a cube
+
+all cubes centered at origin
+side length is one
+each vertex has a unique color attribute in addition to position
+  vertex meaning a location, not like three vertexes per corner
+all tris face front
+accept and use P and MV transformations
+
+basic cube
+  12 triangles, a single call to drawArrays
+  Attribute class to convert arrays into vertex attribs
+
