@@ -40,7 +40,18 @@ class ExperimentalCube {
           ivec3(2, 7, 6)
         );
 
-        vColor = vec4(1.0,1.0,1.0,1.0);
+        const vec3 colors[] = vec3[8](
+          vec3(0, 0, 0),  //0
+          vec3(0, 0, 1),  //1
+          vec3(0, 1, 0),  //2
+          vec3(0, 1, 1),  //3
+          vec3(1, 0, 0),  //4
+          vec3(1, 0, 1),  //5
+          vec3(1, 1, 0),  //6
+          vec3(1, 1, 1)   //7
+        );
+
+        vColor = vec4(colors[indices[gl_InstanceID][gl_VertexID]], 1.0);
         vec4 v = vec4(vertices[indices[gl_InstanceID][gl_VertexID]], 1.0);
         v.xyz -= 0.5;
         gl_Position = P * MV * v;
@@ -58,48 +69,8 @@ class ExperimentalCube {
 
     let program = new ShaderProgram(gl, this, vertexShader, fragmentShader);
 
-
-    let positions = new Float32Array([
-      0,  0,  0,  //0
-      0,  0,  1,  //1
-      0,  1,  0,  //2
-      0,  1,  1,  //3
-      1,  0,  0,  //4
-      1,  0,  1,  //5
-      1,  1,  0,  //6
-      1,  1,  1,  //7
-    ]);
-
-    let indexes = new Uint8Array([
-      6,7,4,
-      5,
-      1,
-      7,
-      3,
-      6,
-      2,
-      4,
-      0,
-      1,
-      2,
-      3,
-    ]);
-
-    let colors = new Uint8Array([
-      0x00, 0x00, 0x00,  //0
-      0x00, 0x00, 0x01,  //1
-      0x00, 0x01, 0x00,  //2
-      0x00, 0x01, 0x01,  //3
-      0x01, 0x00, 0x00,  //4
-      0x01, 0x00, 0x01,  //5
-      0x01, 0x01, 0x00,  //6
-      0x01, 0x01, 0x01,  //7
-    ]);
-
     // gl.cullFace(gl.BACK_FACE);
     gl.enable(gl.CULL_FACE);
-
-    let aIndices = new Indices(gl, indexes);
 
     this.draw = () => {
       program.use();
