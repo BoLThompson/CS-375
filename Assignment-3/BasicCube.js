@@ -115,7 +115,7 @@ class BasicCube {
     ]);
     
     // gl.cullFace(gl.BACK_FACE);
-    gl.enable(gl.CULL_FACE);
+    // gl.enable(gl.CULL_FACE);
 
     let aPosition = new Attribute(gl, program, "aPosition", positions, 3, gl.FLOAT);
     let aColor = new Attribute(gl, program, "aColor", colors, 3, gl.UNSIGNED_BYTE);

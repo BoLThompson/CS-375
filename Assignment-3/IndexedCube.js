@@ -22,6 +22,7 @@ class IndexedCube {
       vec4 pos = aPosition;
       pos.xyz -= 0.5;
       // pos.xyz *= -1.0;
+      // pos.xyz *= 0.5;
       gl_Position = P * MV * pos;
     }
   `;
@@ -50,18 +51,18 @@ class IndexedCube {
   ]);
 
   let indexes = new Uint8Array([
-    0,    2,    6,
-    0,    6,    4,
-    1,    7,    3,
-    1,    5,    7,
-    0,    3,    2,
-    0,    1,    3,
-    4,    6,    7,
-    4,    7,    5,
-    0,    5,    1,
-    0,    4,    5,
-    2,    3,    7,
-    2,    7,    6,
+    6,7,4,
+    5,
+    1,
+    7,
+    3,
+    6,
+    2,
+    4,
+    0,
+    1,
+    2,
+    3,
   ]);
 
   let colors = new Uint8Array([
@@ -88,7 +89,7 @@ class IndexedCube {
     aPosition.enable();
     aColor.enable();
     aIndices.enable();
-    gl.drawElements(gl.TRIANGLES, aIndices.count, aIndices.type, 0);
+    gl.drawElements(gl.TRIANGLE_STRIP, aIndices.count, aIndices.type, 0);
     aIndices.disable();
     aPosition.disable();
     aColor.disable();
