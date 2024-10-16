@@ -9,14 +9,16 @@ class BasicCube {
   constructor(gl, vertexShader, fragmentShader) {
 
     vertexShader ||= `
+      uniform mat4 P;  // Projection transformation
+      uniform mat4 MV; // Model-view transformation
+
       in vec4 aPosition;
 
-      uniform mat4 P;
-      uniform mat4 MV;
-
       void main() {
-          gl_PointSize = 0.25;
-          gl_Position = aPosition;
+        gl_PointSize = 0.25;
+        vec4 pos = aPosition;
+        pos.xyz -= 0.5;
+        gl_Position = P * MV * pos;
       }
     `;
 
@@ -24,17 +26,53 @@ class BasicCube {
       out vec4 fColor;
 
       void main() {
-          fColor = vec4(1.0, 1.0, 0.0, 1.0);
+        fColor = vec4(1.0, 1.0, 0.0, 1.0);
       }
     `;
 
     let program = new ShaderProgram(gl, this, vertexShader, fragmentShader);
 
     let positions = new Float32Array([
-      0, 0, 0,
-      1, 1, 1,
-      0, 1, 1,
+      0,  0,  0,
+      0,  1,  0,
+      1,  1,  0,
+      0,  0,  0,
+      1,  1,  0,
+      1,  0,  0,
+      0,  0,  1,
+      1,  1,  1,
+      0,  1,  1,
+      0,  0,  1,
+      1,  0,  1,
+      1,  1,  1,
+      0,  0,  0,
+      0,  1,  1,
+      0,  1,  0,
+      0,  0,  0,
+      0,  0,  1,
+      0,  1,  1,
+      1,  0,  0,
+      1,  1,  0,
+      1,  1,  1,
+      1,  0,  0,
+      1,  1,  1,
+      1,  0,  1,
+      0,  0,  0,
+      1,  0,  1,
+      0,  0,  1,
+      0,  0,  0,
+      1,  0,  0,
+      1,  0,  1,
+      0,  1,  0,
+      0,  1,  1,
+      1,  1,  1,
+      0,  1,  0,
+      1,  1,  1,
+      1,  1,  0,
     ]);
+    
+    gl.cullFace(gl.BACK_FACE);
+    gl.enable(gl.CULL_FACE);
 
     let aPosition = new Attribute(gl, program, "aPosition", positions, 3, gl.FLOAT);
 
@@ -43,7 +81,7 @@ class BasicCube {
 
       aPosition.enable();
 
-      gl.drawElements(gl.TRIANGLES, 1, gl.UNSIGNED_BYTE, 0);
+      gl.drawArrays(gl.TRIANGLES, 0, aPosition.count);
 
       aPosition.disable();
     };
