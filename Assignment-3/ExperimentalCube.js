@@ -54,7 +54,7 @@ class ExperimentalCube {
     this.draw = () => {
       program.use();
       
-      gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 3, 12);
+      gl.drawArraysInstanced(gl.TRIANGLES, 0, 3, 12);
     };
   }
 };
