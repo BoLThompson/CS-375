@@ -8,17 +8,6 @@
 class BasicCube {
   constructor(gl, vertexShader, fragmentShader) {
 
-    let positions = new Float32Array ([
-       1,	 1,	 1,	
-       1,	 1,	-1,	
-       1,	-1,	 1,	
-       1,	-1,	-1,	
-      -1,	 1,	 1,	
-      -1,	 1,	-1,	
-      -1,	-1,	 1,	
-      -1,	-1,	-1,	
-    ]);
-
     vertexShader ||= `
       in vec4 aPosition;
 
@@ -26,34 +15,37 @@ class BasicCube {
       uniform mat4 MV;
 
       void main() {
-        gl_Position = P * MV * aPosition;
+          gl_PointSize = 0.25;
+          gl_Position = aPosition;
       }
     `;
 
     fragmentShader ||= `
-      uniform vec4 color;
       out vec4 fColor;
 
       void main() {
-        fColor = color;
+          fColor = vec4(1.0, 1.0, 0.0, 1.0);
       }
     `;
 
     let program = new ShaderProgram(gl, this, vertexShader, fragmentShader);
 
+    let positions = new Float32Array([
+      0, 0, 0,
+      1, 1, 1,
+      0, 1, 1,
+    ]);
+
     let aPosition = new Attribute(gl, program, "aPosition", positions, 3, gl.FLOAT);
-    let indices = new Uint16Array([]);
-    indices = new Indices(gl, indices);
 
     this.draw = () => {
       program.use();
 
       aPosition.enable();
-      indices.enable();
-      gl.drawElements(gl.TRIANGLES, indices.count, indices.type, 0);
-      indices.disable();
-      aPosition.disable();
 
+      gl.drawElements(gl.TRIANGLES, 1, gl.UNSIGNED_BYTE, 0);
+
+      aPosition.disable();
     };
   }
 };
