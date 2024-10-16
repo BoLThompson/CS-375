@@ -14,11 +14,12 @@ class IndexedCube {
       uniform mat4 MV; // Model-view transformation
 
       in vec4 aPosition;
-      in vec4 aColor;
+      // in vec4 aColor;
       out vec4 vColor;
 
       void main() {
-        vColor = aColor;
+        // vColor = aColor;
+        vColor = aPosition;
         vec4 pos = aPosition;
         pos.xyz -= 0.5;
         // pos.xyz *= -1.0;
@@ -65,34 +66,34 @@ class IndexedCube {
       3,
     ]);
 
-    let colors = new Uint8Array([
-      0x00, 0x00, 0x00,  //0
-      0x00, 0x00, 0x01,  //1
-      0x00, 0x01, 0x00,  //2
-      0x00, 0x01, 0x01,  //3
-      0x01, 0x00, 0x00,  //4
-      0x01, 0x00, 0x01,  //5
-      0x01, 0x01, 0x00,  //6
-      0x01, 0x01, 0x01,  //7
-    ]);
+    // let colors = new Uint8Array([
+    //   0x00, 0x00, 0x00,  //0
+    //   0x00, 0x00, 0x01,  //1
+    //   0x00, 0x01, 0x00,  //2
+    //   0x00, 0x01, 0x01,  //3
+    //   0x01, 0x00, 0x00,  //4
+    //   0x01, 0x00, 0x01,  //5
+    //   0x01, 0x01, 0x00,  //6
+    //   0x01, 0x01, 0x01,  //7
+    // ]);
 
     // gl.cullFace(gl.BACK_FACE);
-    gl.enable(gl.CULL_FACE);
+    // gl.enable(gl.CULL_FACE);
 
     let aPosition = new Attribute(gl, program, "aPosition", positions, 3, gl.FLOAT);
-    let aColor = new Attribute(gl, program, "aColor", colors, 3, gl.UNSIGNED_BYTE);
+    // let aColor = new Attribute(gl, program, "aColor", colors, 3, gl.UNSIGNED_BYTE);
     let aIndices = new Indices(gl, indexes);
 
     this.draw = () => {
       program.use();
 
       aPosition.enable();
-      aColor.enable();
+      // aColor.enable();
       aIndices.enable();
       gl.drawElements(gl.TRIANGLE_STRIP, aIndices.count, aIndices.type, 0);
       aIndices.disable();
       aPosition.disable();
-      aColor.disable();
+      // aColor.disable();
     };
   }
 };

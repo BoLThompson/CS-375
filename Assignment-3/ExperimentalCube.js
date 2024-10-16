@@ -39,20 +39,9 @@ class ExperimentalCube {
           ivec3(2, 3, 7),
           ivec3(2, 7, 6)
         );
-
-        const vec3 colors[] = vec3[8](
-          vec3(0, 0, 0),  //0
-          vec3(0, 0, 1),  //1
-          vec3(0, 1, 0),  //2
-          vec3(0, 1, 1),  //3
-          vec3(1, 0, 0),  //4
-          vec3(1, 0, 1),  //5
-          vec3(1, 1, 0),  //6
-          vec3(1, 1, 1)   //7
-        );
-
-        vColor = vec4(colors[indices[gl_InstanceID][gl_VertexID]], 1.0);
+        
         vec4 v = vec4(vertices[indices[gl_InstanceID][gl_VertexID]], 1.0);
+        vColor = v;
         v.xyz -= 0.5;
         gl_Position = P * MV * v;
       }
@@ -70,7 +59,7 @@ class ExperimentalCube {
     let program = new ShaderProgram(gl, this, vertexShader, fragmentShader);
 
     // gl.cullFace(gl.BACK_FACE);
-    gl.enable(gl.CULL_FACE);
+    // gl.enable(gl.CULL_FACE);
 
     this.draw = () => {
       program.use();
