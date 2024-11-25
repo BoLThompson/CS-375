@@ -1,79 +1,141 @@
 import './style.css'
 import * as THREE from 'three';
+import {OBJLoader} from 'three/addons/loaders/OBJLoader.js'
+import arwingobj from "./models/arwing/arwing.obj?url"
+import arwingmtl from "./models/arwing/arwing.mtl?url"
 
-const scene = new THREE.Scene();
 
-//fov, aspect ratio, near, far
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+function doGame() {
+  const scene = new THREE.Scene();
 
-const renderer = new THREE.WebGLRenderer({
-  canvas: document.querySelector('#bg'),
-});
+  //fov, aspect ratio, near, far
+  const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1000);
 
-renderer.setPixelRatio(window.devicePixelRatio);
-renderer.setSize(window.innerWidth, window.innerHeight);
-camera.position.setZ(30);
-renderer.render(scene,camera);
+  const renderer = new THREE.WebGLRenderer({
+    canvas: document.querySelector('#bg'),
+  });
 
-const geometry = new THREE.ConeGeometry(3,10,10,1,false,0/*,theta? */);
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  camera.position.setZ(30);
 
-const material = new THREE.MeshBasicMaterial({color: 0xFF6347, wireframe:true});
+  var keyLight = new THREE.DirectionalLight(
+    new THREE.Color('hsl(30, 100%, 75%)'), 1.0
+  );
+  keyLight.position.set(-100,0,100);
+  scene.add(keyLight);
 
-const cone = new THREE.Mesh(geometry,material);
-cone.matrixAutoUpdate = false;
+  var fillLight = new THREE.DirectionalLight(
+    new THREE.Color('hsl(240, 100%, 75%)'), 1.0
+  );
+  fillLight.position.set(100,0,100);
+  scene.add(fillLight);
 
-scene.add(cone);
+  var backLight = new THREE.DirectionalLight(
+    0xFFFFFF, 1.0
+  );
+  backLight.position.set(100,0,-100).normalize();
+  scene.add(backLight);
 
-function animate() {
-  requestAnimationFrame(animate);
+  let cone;
   
-  renderer.render(scene,camera);
-}
-animate();
+  const loader = new OBJLoader();
+  loader.load(arwingobj, (obj)=>{
+    cone = obj;
+    cone.matrixAutoUpdate = false;
+    scene.add(cone);
+  });
 
-function setupMouseControl(element) {
-  let active = true;
+  
 
-  function setActive(val) {
-    active = val;
-    if (val) {
-      document.getElementById("bg").style.cursor = "none";
+  function setupMouseControl(element) {
+    let active = true;
+
+    function setActive(val) {
+      active = val;
+      if (val) {
+        document.getElementById("bg").style.cursor = "none";
+      }
+      else {
+        document.getElementById("bg").style.cursor = "unset";
+      }
     }
-    else {
-      document.getElementById("bg").style.cursor = "unset";
-    }
-  }
 
-  function move(e) {
-    if (!active) return;
+    function move(e) {
+      if (!active) return;
 
-    cone.matrix.identity();
-    cone.matrix.premultiply(
-      new THREE.Matrix4().makeRotationX(
-        -Math.PI/2
+      cone.matrix.identity();
+      cone.matrix.premultiply(
+        new THREE.Matrix4().makeScale(2,2,2)
       )
-    );
-    cone.matrix.premultiply(
-      new THREE.Matrix4().makeTranslation(
-        new THREE.Vector3(
-          (e.clientX - window.innerWidth / 2)/10,
-          (e.clientY - window.innerHeight / 2)/-10,
-          -40
+      cone.matrix.premultiply(
+        new THREE.Matrix4().makeRotationX(
+          -Math.PI
         )
-      )
-    );
+      );
+      cone.matrix.premultiply(
+        new THREE.Matrix4().makeTranslation(
+          new THREE.Vector3(
+            (e.clientX - window.innerWidth / 2)/20,
+            (e.clientY - window.innerHeight / 2)/-20,
+            0//-40
+          )
+        )
+      );
+    }
+
+    element.addEventListener('click', (e) => {
+      setActive(true);
+      move(e);
+    })
+    element.addEventListener('keydown', (e) => {
+      if (e.key == "Escape") setActive(false);
+    })
+    element.addEventListener('mousemove', move);
+
+    setActive(true);
   }
 
-  element.addEventListener('click', (e) => {
-    setActive(true);
-    move(e);
-  })
-  element.addEventListener('keydown', (e) => {
-    if (e.key == "Escape") setActive(false);
-  })
-  element.addEventListener('mousemove', move);
+  setupMouseControl(document.body);
 
-  setActive(true);
+  
+
+  function animate() {
+    requestAnimationFrame(animate);
+    
+    renderer.render(scene,camera);
+  }
+  animate();
+
 }
 
-setupMouseControl(document.body);
+doGame();
+
+function init() {
+
+  // const mtlLoader = new THREE.MaterialLoader();
+  // mtlLoader.setTextures({
+  //   body: new THREE.Texture(),
+  //   cockpit: new THREE.Texture(),
+  //   logo: new THREE.Texture()
+  // })
+  // mtlLoader.load(arwingmtl, (mtl)=>{
+    // console.log(mtl);
+  
+    const loader = new OBJLoader();
+    loader.load(arwingobj, (obj)=>{
+      cone = obj;
+      cone.matrixAutoUpdate = false;
+      scene.add(cone);
+    }, ()=>{}, console.log);
+  // });
+}
+// init();
+
+// const geometry = new THREE.ConeGeometry(3,10,10,1,false,0/*,theta? */);
+
+// const material = new THREE.MeshBasicMaterial({color: 0xFF6347, wireframe:true});
+
+// const cone = new THREE.Mesh(object,material);
+
+// scene.add(cone);
