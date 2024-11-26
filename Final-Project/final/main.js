@@ -1,20 +1,53 @@
 import './style.css'
 import * as THREE from 'three';
 import {OBJLoader} from 'three/addons/loaders/OBJLoader.js'
+import {MTLLoader } from 'three/addons/loaders/MTLLoader.js'
 import arwingobj from "./models/arwing/arwing.obj?url"
 import arwingmtl from "./models/arwing/arwing.mtl?url"
 
+class Actor {
+  constructor(x,y,z, scene, model = {geometry: false, material: false}, onload = ()=>{}) {
+    this.position = new THREE.Vector3(x,y,z);
+    this.scale = new THREE.Vector3(1,1,1);
+    this.model = false;
+    this.drawMethod = () => {};
+  
+    const mtlLoader = new MTLLoader();
+    const objLoader = new OBJLoader();
+
+    new Promise((resolve,reject) => {
+      mtlLoader.load(
+        model.material,
+        resolve
+      );
+    })
+    .then(materials => {
+      return new Promise((resolve, reject) => {
+        objLoader.setMaterials(materials);
+        objLoader.load(model.geometry, resolve);
+      })
+    })
+    .then((obj)=>{
+      this.model = obj;
+      this.model.matrixAutoUpdate = false;
+      scene.add(this.model);
+      onload();
+    })
+  }
+
+  draw() {
+    if (this.model)
+      this.drawMethod(this.position, this.scale, this.model.matrix);
+  }
+}
 
 function doGame() {
   const scene = new THREE.Scene();
-
   //fov, aspect ratio, near, far
   const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1000);
-
   const renderer = new THREE.WebGLRenderer({
     canvas: document.querySelector('#bg'),
   });
-
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(window.innerWidth, window.innerHeight);
   camera.position.setZ(30);
@@ -37,16 +70,34 @@ function doGame() {
   backLight.position.set(100,0,-100).normalize();
   scene.add(backLight);
 
-  let cone;
+  const ship = new Actor(0,0,0,
+    scene,
+    {
+      geometry: arwingobj,
+      material: arwingmtl,
+    }
+  );
   
-  const loader = new OBJLoader();
-  loader.load(arwingobj, (obj)=>{
-    cone = obj;
-    cone.matrixAutoUpdate = false;
-    scene.add(cone);
-  });
-
-  
+  ship.drawMethod = (position, scale, matrix) => {
+    matrix.identity();
+    matrix.premultiply(
+      new THREE.Matrix4().makeScale(3,3,3)
+    )
+    matrix.premultiply(
+      new THREE.Matrix4().makeRotationY(
+        -Math.PI
+      )
+    );
+    matrix.premultiply(
+      new THREE.Matrix4().makeTranslation(
+        new THREE.Vector3(
+          position.x,
+          position.y,
+          position.z
+        )
+      )
+    );
+  }
 
   function setupMouseControl(element) {
     let active = true;
@@ -63,25 +114,11 @@ function doGame() {
 
     function move(e) {
       if (!active) return;
+      
+      ship.position.x = ((e.clientX / window.innerWidth)*2-1) * 10;
+      ship.position.y = (-(e.clientY / window.innerHeight)*2+1) * 10;
 
-      cone.matrix.identity();
-      cone.matrix.premultiply(
-        new THREE.Matrix4().makeScale(2,2,2)
-      )
-      cone.matrix.premultiply(
-        new THREE.Matrix4().makeRotationX(
-          -Math.PI
-        )
-      );
-      cone.matrix.premultiply(
-        new THREE.Matrix4().makeTranslation(
-          new THREE.Vector3(
-            (e.clientX - window.innerWidth / 2)/20,
-            (e.clientY - window.innerHeight / 2)/-20,
-            0//-40
-          )
-        )
-      );
+      ship.draw();
     }
 
     element.addEventListener('click', (e) => {
@@ -110,32 +147,3 @@ function doGame() {
 }
 
 doGame();
-
-function init() {
-
-  // const mtlLoader = new THREE.MaterialLoader();
-  // mtlLoader.setTextures({
-  //   body: new THREE.Texture(),
-  //   cockpit: new THREE.Texture(),
-  //   logo: new THREE.Texture()
-  // })
-  // mtlLoader.load(arwingmtl, (mtl)=>{
-    // console.log(mtl);
-  
-    const loader = new OBJLoader();
-    loader.load(arwingobj, (obj)=>{
-      cone = obj;
-      cone.matrixAutoUpdate = false;
-      scene.add(cone);
-    }, ()=>{}, console.log);
-  // });
-}
-// init();
-
-// const geometry = new THREE.ConeGeometry(3,10,10,1,false,0/*,theta? */);
-
-// const material = new THREE.MeshBasicMaterial({color: 0xFF6347, wireframe:true});
-
-// const cone = new THREE.Mesh(object,material);
-
-// scene.add(cone);
