@@ -41,7 +41,7 @@ class Actor {
   }
 }
 
-function doGame() {
+async function doGame() {
   const scene = new THREE.Scene();
   //fov, aspect ratio, near, far
   const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -69,14 +69,20 @@ function doGame() {
   );
   backLight.position.set(100,0,-100).normalize();
   scene.add(backLight);
+  
+  let ship;
+  await new Promise((resolve, reject) => {
+    ship = new Actor(0,0,0,
+      scene,
+      {
+        geometry: arwingobj,
+        material: arwingmtl,
+      },
+      resolve
+    );
+  })
 
-  const ship = new Actor(0,0,0,
-    scene,
-    {
-      geometry: arwingobj,
-      material: arwingmtl,
-    }
-  );
+  let shipTarget = new THREE.Vector2();
   
   ship.drawMethod = (position, scale, matrix) => {
     matrix.identity();
@@ -92,7 +98,7 @@ function doGame() {
       new THREE.Matrix4().makeTranslation(
         new THREE.Vector3(
           position.x,
-          position.y,
+          position.y - 2.5,
           position.z
         )
       )
@@ -100,25 +106,30 @@ function doGame() {
   }
 
   function setupMouseControl(element) {
+
     let active = true;
 
     function setActive(val) {
       active = val;
-      if (val) {
-        document.getElementById("bg").style.cursor = "none";
-      }
-      else {
-        document.getElementById("bg").style.cursor = "unset";
-      }
+      // if (val) {
+      //   document.getElementById("bg").style.cursor = "none";
+      // }
+      // else {
+      //   document.getElementById("bg").style.cursor = "unset";
+      // }
     }
 
     function move(e) {
       if (!active) return;
+    
+      let minTarget = new THREE.Vector2();
+      let maxTarget = new THREE.Vector2();
+      camera.getViewBounds(30,minTarget,maxTarget);
       
-      ship.position.x = ((e.clientX / window.innerWidth)*2-1) * 10;
-      ship.position.y = (-(e.clientY / window.innerHeight)*2+1) * 10;
-
-      ship.draw();
+      shipTarget = new THREE.Vector2(
+        ((e.clientX / window.innerWidth)*2-1) * maxTarget.x,
+        (-(e.clientY / window.innerHeight)*2+1) * maxTarget.y
+      );
     }
 
     element.addEventListener('click', (e) => {
@@ -135,13 +146,37 @@ function doGame() {
 
   setupMouseControl(document.body);
 
-  
-
   function animate() {
     requestAnimationFrame(animate);
+
+    let shipPosition = new THREE.Vector2(ship.position.x, ship.position.y);
+
+    const shipTrack = new THREE.Vector2().subVectors(shipTarget, shipPosition);
+
+    const followSpeed = 0.75
+
+    if (shipTrack.length() < followSpeed) {
+      shipPosition.x = shipTarget.x;
+      shipPosition.y = shipTarget.y;
+    }
+    else {
+      shipPosition.addVectors(
+        shipPosition,
+        shipTrack.normalize().multiplyScalar(followSpeed)
+      );
+    }
+
+    shipPosition.x = Math.max(-5,Math.min(shipPosition.x,5))
+    shipPosition.y = Math.max(-5,Math.min(shipPosition.y,5))
+
+    ship.position.x = shipPosition.x;
+    ship.position.y = shipPosition.y;
+
+    ship.draw();
     
     renderer.render(scene,camera);
   }
+
   animate();
 
 }
