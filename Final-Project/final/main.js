@@ -4,13 +4,22 @@ import {OBJLoader} from 'three/addons/loaders/OBJLoader.js'
 import {MTLLoader } from 'three/addons/loaders/MTLLoader.js'
 import arwingobj from "./models/arwing/arwing.obj?url"
 import arwingmtl from "./models/arwing/arwing.mtl?url"
+import asteroidobj from "./models/asteroid/10464_Asteroid_v1_Iterations-2.obj?url"
+import asteroidobj2 from "./models/rock/Rock1.obj?url"
+import asteroidmtl from "./models/asteroid/10464_Asteroid_v1_Iterations-2.mtl?url"
+import asteroidmtl2 from "./models/rock/Rock1.mtl?url"
+import { randFloat, randInt } from 'three/src/math/MathUtils.js';
+
+const CAMDISTANCE = 30;
 
 class Actor {
   constructor(x,y,z, scene, model = {geometry: false, material: false}, onload = ()=>{}) {
     this.position = new THREE.Vector3(x,y,z);
     this.scale = new THREE.Vector3(1,1,1);
+    this.rotation = new THREE.Vector3(0,0,0);
     this.model = false;
     this.drawMethod = () => {};
+    this.stepMethod = (me, delta) => {};
   
     const mtlLoader = new MTLLoader();
     const objLoader = new OBJLoader();
@@ -35,13 +44,23 @@ class Actor {
     })
   }
 
+  destroy(scene) {
+    scene.remove(this.model);
+  }
+
   draw() {
     if (this.model)
-      this.drawMethod(this.position, this.scale, this.model.matrix);
+      this.drawMethod(this.position, this.scale, this.rotation, this.model.matrix);
+  }
+
+  step(delta) {
+    if (this.stepMethod) return this.stepMethod(this, delta);
+    else return false;
   }
 }
 
 async function doGame() {
+  let actors = [];
   const scene = new THREE.Scene();
   //fov, aspect ratio, near, far
   const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -50,7 +69,7 @@ async function doGame() {
   });
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(window.innerWidth, window.innerHeight);
-  camera.position.setZ(30);
+  camera.position.setZ(CAMDISTANCE);
 
   var keyLight = new THREE.DirectionalLight(
     new THREE.Color('hsl(30, 100%, 75%)'), 1.0
@@ -82,12 +101,14 @@ async function doGame() {
     );
   })
 
-  let shipTarget = new THREE.Vector2();
+  actors.push(ship);
+
+  ship.target = new THREE.Vector2();
   
-  ship.drawMethod = (position, scale, matrix) => {
+  ship.drawMethod = (position, scale, rotation, matrix) => {
     matrix.identity();
     matrix.premultiply(
-      new THREE.Matrix4().makeScale(3,3,3)
+      new THREE.Matrix4().makeScale(2,2,2)
     )
     matrix.premultiply(
       new THREE.Matrix4().makeRotationY(
@@ -103,6 +124,36 @@ async function doGame() {
         )
       )
     );
+  }
+
+  ship.stepMethod = (me, delta) => {
+    let pos = new THREE.Vector2(me.position.x, me.position.y);
+
+    const shipTrack = new THREE.Vector2().subVectors(me.target, pos);
+
+    const followSpeed = 0.25//Math.round(0.25 * delta * 1000) / 1000;
+    // console.log(followSpeed);
+
+    if (shipTrack.length() < followSpeed) {
+      pos.x = me.target.x;
+      pos.y = me.target.y;
+    }
+    else {
+      shipTrack.normalize().multiplyScalar(followSpeed);
+      // console.log(shipTrack);
+      pos.addVectors(
+        pos,
+        shipTrack
+      );
+    }
+
+    pos.x = Math.max(-5,Math.min(pos.x,5))
+    pos.y = Math.max(-5,Math.min(pos.y,5))
+
+    me.position.x = pos.x;
+    me.position.y = pos.y;
+
+    return false;
   }
 
   function setupMouseControl(element) {
@@ -124,9 +175,9 @@ async function doGame() {
     
       let minTarget = new THREE.Vector2();
       let maxTarget = new THREE.Vector2();
-      camera.getViewBounds(30,minTarget,maxTarget);
+      camera.getViewBounds(CAMDISTANCE,minTarget,maxTarget);
       
-      shipTarget = new THREE.Vector2(
+      ship.target = new THREE.Vector2(
         ((e.clientX / window.innerWidth)*2-1) * maxTarget.x,
         (-(e.clientY / window.innerHeight)*2+1) * maxTarget.y
       );
@@ -146,35 +197,122 @@ async function doGame() {
 
   setupMouseControl(document.body);
 
-  function animate() {
-    requestAnimationFrame(animate);
 
-    let shipPosition = new THREE.Vector2(ship.position.x, ship.position.y);
+  let secondsPassed;
+  let oldTimeStamp;
+  const fps = 60;
+  let nextSpawn = 1;
+  // console.log(nextSpawn);
 
-    const shipTrack = new THREE.Vector2().subVectors(shipTarget, shipPosition);
+  function animate(timeStamp) {
+    if (!oldTimeStamp) oldTimeStamp = secondsPassed;
+    secondsPassed = (timeStamp - oldTimeStamp) / 1000;
+    oldTimeStamp = timeStamp;
+    let delta = secondsPassed / (1.0/fps);
 
-    const followSpeed = 0.75
+    if (secondsPassed)
+      nextSpawn -= secondsPassed;
+    // console.log(nextSpawn);
 
-    if (shipTrack.length() < followSpeed) {
-      shipPosition.x = shipTarget.x;
-      shipPosition.y = shipTarget.y;
+    if (nextSpawn <= 0) {
+      // console.log("find rock lol")
+      nextSpawn = randFloat(.25,1);
+
+      let asteroid;
+      let oddOne = randInt(0,4) % 4 === 0;
+      new Promise((resolve, reject) => {
+        asteroid = new Actor(0,0,0,
+          scene,
+          {
+            geometry: oddOne ? asteroidobj2 : asteroidobj,
+            material: oddOne ? asteroidmtl2 : asteroidmtl,
+          },
+          resolve
+        );
+      }).then(()=> {
+        asteroid.position.z = -300;
+        asteroid.position.x = randFloat(-5,5);
+        asteroid.position.y = randFloat(-5,5);
+        asteroid.rotation.x = randFloat(0,2*Math.PI);
+        asteroid.rotation.y = randFloat(0,2*Math.PI);
+        asteroid.rotation.z = randFloat(0,2*Math.PI);
+        asteroid.scale.x = asteroid.scale.y = asteroid.scale.z = oddOne ? 0.1  : 0.001
+
+        actors.push(asteroid);
+        // console.log("push rock lol")
+      })
+      
+      asteroid.drawMethod = (position, scale, rotation, matrix) => {
+        matrix.identity();
+        matrix.premultiply(
+          new THREE.Matrix4().makeScale(scale.x,scale.y,scale.z)
+        );
+        matrix.premultiply(
+          new THREE.Matrix4().makeRotationX(
+            rotation.x
+          )
+        );
+        matrix.premultiply(
+          new THREE.Matrix4().makeRotationY(
+            rotation.y
+          )
+        );
+        matrix.premultiply(
+          new THREE.Matrix4().makeRotationZ(
+            rotation.z
+          )
+        );
+        matrix.premultiply(
+          new THREE.Matrix4().makeTranslation(
+            new THREE.Vector3(
+              position.x,
+              position.y,
+              position.z
+            )
+          )
+        );
+      }
+
+      asteroid.stepMethod = (me, delta) => {
+        me.position.z += 1;
+
+        if (me.position.z >= CAMDISTANCE) {
+          return true;
+        }
+        return false;
+      }
     }
-    else {
-      shipPosition.addVectors(
-        shipPosition,
-        shipTrack.normalize().multiplyScalar(followSpeed)
-      );
+
+    ship.step(delta);
+
+    for (let i = 1; i < actors.length; ++i) {
+      if (actors[i].step(delta)) {
+        // console.log(actors.length)
+        actors[i].destroy(scene);
+        actors.splice(i,1);
+        --i;
+      }
+      else {
+        let diff = new THREE.Vector3();
+        diff.subVectors(ship.position, actors[i].position);
+        if (Math.abs(diff.length()) < 2) {
+          window.alert("you crashed");
+          actors[i].destroy(scene);
+          actors.splice(i,1);
+          --i;
+        }
+      }
+      // actors[i].step(delta)
     }
 
-    shipPosition.x = Math.max(-5,Math.min(shipPosition.x,5))
-    shipPosition.y = Math.max(-5,Math.min(shipPosition.y,5))
-
-    ship.position.x = shipPosition.x;
-    ship.position.y = shipPosition.y;
-
+    for (let a of actors) {
+      a.draw();
+    }
     ship.draw();
     
     renderer.render(scene,camera);
+
+    requestAnimationFrame(animate);
   }
 
   animate();
